@@ -6,7 +6,7 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 // ---------- 布局 ----------
 export const BOUNDS={x0:-33,x1:33,z0:-36,z1:29};
 export const START=[-2,25];
-export const EXITS=[{x:-15,z:13,hold:25},{x:21,z:-4,hold:35},{x:-12,z:-29,hold:45}];
+export const EXITS=[{x:-15,z:13,hold:45},{x:21,z:-4,hold:60},{x:-12,z:-29,hold:75}];
 export const EXIT_R=2.4;
 export const OUTPOST_A=[12,13],OUTPOST_B=[3,-25.5];
 const TRUCK=[-20.4,-8.6],TRUCK_A=-.3;

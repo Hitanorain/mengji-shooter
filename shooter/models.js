@@ -45,7 +45,7 @@ export function makeChick(o={}){const{mats,M,add}=kit(),g=new THREE.Group(),body
 // ---------- 黄鼠狼士兵：黑头盔、红围巾、长尾巴，拿步枪或木棒 ----------
 export function makeWeasel(o={}){const{mats,M,add}=kit(),g=new THREE.Group(),body=new THREE.Group(),feet=[];g.add(body);const mk=add(body);
  const mF=M({color:o.fur??0x9a683a,roughness:.9}),mC=M({color:0xf0dcb8,roughness:.9}),mK=M({color:0x111111,roughness:.3}),mW=M({color:0xffffff,emissive:0xffffff,emissiveIntensity:.5}),
-  mHel=M({color:0x262626,roughness:.45,metalness:.25}),mR=M({color:o.scarf??0xc8261c,roughness:.85}),mGun=M({color:0x2b2b2b,roughness:.4,metalness:.6}),mStock=M({color:0x6a4426,roughness:.8});
+  mHel=M({color:o.helmet??0x262626,roughness:.45,metalness:o.helmet?.6:.25}),mR=M({color:o.scarf??0xc8261c,roughness:.85}),mGun=M({color:0x2b2b2b,roughness:.4,metalness:.6}),mStock=M({color:0x6a4426,roughness:.8});
  const tr=mk(new THREE.CapsuleGeometry(.25,.6,6,14),mF,0,.62,-.04);tr.rotation.x=.3;
  const bl=mk(new THREE.CapsuleGeometry(.18,.48,6,12),mC,0,.64,.08);bl.rotation.x=.3;
  mk(sph(.22),mF,0,1.14,.16,[1,.95,1.15]);
@@ -76,14 +76,16 @@ export function animWalk(d,dt,sp,t){d.ph+=dt*sp*3.4;const m=Math.min(sp/3,1),s=M
 
 // ---------- 子弹 ----------
 const kernelGeo=new THREE.SphereGeometry(.1,12,8);kernelGeo.scale(1,.8,1.35);
-const mKernel=new THREE.MeshStandardMaterial({color:0xffd040,emissive:0xffa000,emissiveIntensity:1.3,roughness:.4});
+const KV={corn:[0xffd040,0xffa000,[1.6,1.1,.3]],fire:[0xff6a20,0xff3a00,[2.6,.7,.15]],ice:[0xbff2ff,0x40c8ff,[.5,1.6,2.6]],boom:[0xffb030,0xff7000,[2.2,1.1,.2]]};
+const kMats={},tMats={};for(const k in KV){const[c,e,t]=KV[k];kMats[k]=new THREE.MeshStandardMaterial({color:c,emissive:e,emissiveIntensity:1.5,roughness:.4});
+ tMats[k]=new THREE.MeshBasicMaterial({color:new THREE.Color(...t),transparent:true,opacity:.5,blending:THREE.AdditiveBlending,depthWrite:false});}
 const mFoe=new THREE.MeshBasicMaterial({color:new THREE.Color(4,1.1,.35)});
 const trailGeo=new THREE.ConeGeometry(.07,1,8,1,true);trailGeo.translate(0,-.5,0);trailGeo.rotateX(-Math.PI/2);
 const mTrailP=new THREE.MeshBasicMaterial({color:new THREE.Color(1.6,1.1,.3),transparent:true,opacity:.45,blending:THREE.AdditiveBlending,depthWrite:false});
 const mTrailE=new THREE.MeshBasicMaterial({color:new THREE.Color(2.4,.6,.2),transparent:true,opacity:.55,blending:THREE.AdditiveBlending,depthWrite:false});
 const foeGeo=new THREE.CapsuleGeometry(.07,.22,4,8);foeGeo.rotateX(Math.PI/2);
-export function makeBullet(foe){const g=new THREE.Group();const k=new THREE.Mesh(foe?foeGeo:kernelGeo,foe?mFoe:mKernel);k.castShadow=true;g.add(k);
- const tr=new THREE.Mesh(trailGeo,foe?mTrailE:mTrailP);tr.scale.set(1,1,foe?1.4:1.1);g.add(tr);scene.add(g);return g;}
+export function makeBullet(foe,v='corn'){const g=new THREE.Group();const k=new THREE.Mesh(foe?foeGeo:kernelGeo,foe?mFoe:kMats[v]);k.castShadow=true;g.add(k);
+ const tr=new THREE.Mesh(trailGeo,foe?mTrailE:tMats[v]);tr.scale.set(1,1,foe?1.4:1.2);g.add(tr);g.userData.k=k;scene.add(g);return g;}
 
 // ---------- 道具 ----------
 export const PICKUPS={
@@ -94,6 +96,12 @@ export const PICKUPS={
  heart:{name:'爱心',desc:'恢复 1 颗心',col:0xff7aa8,dur:0},
  stink:{name:'臭蛋',desc:'+1 颗臭蛋',col:0x9be05a,dur:0},
  coin:{name:'玉米币',desc:'',col:0xffe27a,dur:0},
+ xp:{name:'经验',desc:'',col:0xb6ff6a,dur:0},
+ fire:{name:'火焰玉米',desc:'子弹点燃敌人',col:0xff5a20,dur:15},
+ ice:{name:'冰霜玉米',desc:'子弹让敌人变慢',col:0x7fd8ff,dur:15},
+ pierce:{name:'穿甲玉米',desc:'子弹穿透 2 个敌人',col:0xd8e0ea,dur:15},
+ boom:{name:'爆裂玉米',desc:'命中时爆炸',col:0xffa030,dur:15},
+ homing:{name:'追踪玉米',desc:'子弹自动拐弯',col:0xff7ad8,dur:15},
  gold:{name:'金蛋',desc:'',col:0xffcf3a,dur:0},
 };
 const pm=(c,e=.25)=>new THREE.MeshStandardMaterial({color:c,roughness:.45,emissive:c,emissiveIntensity:e});
@@ -106,12 +114,18 @@ function icon(type){const g=new THREE.Group(),add=(geo,m,x,y,z)=>{const me=new T
  else if(type==='shield'){const s=add(new THREE.SphereGeometry(.24,20,12,0,Math.PI*2,0,Math.PI*.62),pm(0xfff6e4,.3),0,0,0);s.scale.y=1.25;s.rotation.x=-.4;}
  else if(type==='heart'){const m=pm(0xff4f7a,.4);add(new THREE.SphereGeometry(.13,14,10),m,-.1,.06,0);add(new THREE.SphereGeometry(.13,14,10),m,.1,.06,0);const c=add(new THREE.ConeGeometry(.19,.3,14),m,0,-.12,0);c.rotation.z=Math.PI;}
  else if(type==='stink'){const e=add(new THREE.SphereGeometry(.17,16,12),pm(0x9be05a,.35),0,0,0);e.scale.y=1.25;}
+ else if(type==='xp'){const e=add(new THREE.OctahedronGeometry(.13,0),new THREE.MeshStandardMaterial({color:0xc8ff7a,emissive:0x7acc20,emissiveIntensity:1.4,roughness:.3}),0,0,0);e.scale.y=1.4;g.scale.setScalar(.8);}
+ else if(type==='fire'){const k=add(kernelGeo,pm(0xff6a20,.8),0,0,0);k.scale.setScalar(1.8);const f=add(new THREE.ConeGeometry(.11,.3,8),new THREE.MeshBasicMaterial({color:new THREE.Color(2.5,.9,.2)}),0,.26,0);}
+ else if(type==='ice'){const c=add(new THREE.OctahedronGeometry(.2,0),pm(0xbff2ff,.7),0,0,0);c.scale.y=1.5;}
+ else if(type==='pierce'){const c=add(new THREE.ConeGeometry(.1,.5,6),pm(0xdfe6ee,.4),0,0,0);c.rotation.z=-Math.PI/2;add(new THREE.CylinderGeometry(.03,.03,.3,6),pm(0x9a7a50,.1),-.3,0,0).rotation.z=Math.PI/2;}
+ else if(type==='boom'){add(new THREE.SphereGeometry(.18,16,12),pm(0x2a2a2a,.05),0,0,0);add(new THREE.CylinderGeometry(.03,.03,.14,6),pm(0x9a7a50,.1),0,.22,0);add(new THREE.SphereGeometry(.05,8,6),new THREE.MeshBasicMaterial({color:new THREE.Color(3,1.5,.3)}),0,.31,0);}
+ else if(type==='homing'){const t=add(new THREE.TorusGeometry(.18,.04,8,24),pm(0xff7ad8,.6),0,0,0);add(new THREE.SphereGeometry(.06,10,8),pm(0xff7ad8,.8),0,0,0);}
  else if(type==='gold'){const e=add(new THREE.SphereGeometry(.2,20,14),new THREE.MeshStandardMaterial({color:0xffcf3a,emissive:0x9a6400,emissiveIntensity:.8,metalness:.85,roughness:.2}),0,0,0);e.scale.y=1.3;}
  return g;}
 const[bc,bx]=(()=>{const c=document.createElement('canvas');c.width=4;c.height=64;return[c,c.getContext('2d')];})();{const gr=bx.createLinearGradient(0,0,0,64);gr.addColorStop(0,'#000');gr.addColorStop(1,'#fff');bx.fillStyle=gr;bx.fillRect(0,0,4,64);}
 const beamAlpha=new THREE.CanvasTexture(bc);
 export function makePickup(type){const P=PICKUPS[type],g=new THREE.Group(),ic=icon(type);ic.position.y=.75;g.add(ic);
- const small=type==='coin';
+ const small=type==='coin'||type==='xp';
  const ring=new THREE.Mesh(new THREE.RingGeometry(.38,.46,40),new THREE.MeshBasicMaterial({color:P.col,transparent:true,opacity:.8,depthWrite:false}));ring.rotation.x=-Math.PI/2;ring.position.y=.04;g.add(ring);
  let beam=null;if(!small){beam=new THREE.Mesh(new THREE.CylinderGeometry(.42,.42,2.6,24,1,true),new THREE.MeshBasicMaterial({color:P.col,alphaMap:beamAlpha,transparent:true,opacity:.35,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));beam.position.y=1.3;g.add(beam);}
  if(small){ring.scale.setScalar(.6);ic.position.y=.45;}

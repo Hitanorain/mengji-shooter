@@ -11,6 +11,16 @@ export function stamina(k){set('s','v',Math.round(k*50),()=>$('stBar').style.wid
 export function weapon(name,buffs,inv){set('w','n',name,v=>$('wName').textContent=v);
  const key=buffs.map(b=>b.name+Math.ceil(b.t)).join();set('w','b',key,()=>$('buffs').innerHTML=buffs.map(b=>`<div class="buff" style="color:${b.col}">${b.name}<b>${Math.ceil(b.t)}s</b></div>`).join(''));
  set('w','s',inv.stink,v=>$('iStink').textContent=v);set('w','c',inv.coin,v=>$('iCoin').textContent=v);set('w','g',inv.gold,v=>$('iGold').textContent=v);}
+export function level(lv,k){set('l','v',lv,v=>$('lv').textContent='Lv '+v);set('l','k',Math.round(k*100),v=>$('xpBar').style.width=v+'%');}
+export function wstat(t){set('w','t',t,v=>$('wStat').textContent=v);}
+export function ups(list){const key=list.map(u=>u.icon+u.lv).join();set('u','v',key,()=>$('ups').innerHTML=list.map(u=>`<span title="${u.name}">${u.icon}<b>${u.lv}</b></span>`).join(''));}
+export function boss(name,k){const b=$('boss');if(name==null){b.hidden=true;return;}b.hidden=false;set('b','n',name,v=>$('bossName').textContent=v);$('bossBar').style.width=Math.max(0,k*100)+'%';}
+// 升级三选一
+let pickCb=null;
+export function picker(cards,cb){const p=$('pick');if(!cards){p.hidden=true;pickCb=null;return;}pickCb=cb;p.hidden=false;$('banner').classList.remove('on');
+ $('cards').innerHTML=cards.map((c,i)=>`<button class="ucard" data-i="${i}"><div class="ic">${c.icon}</div><b>${c.name}</b><span>${c.desc}</span><i>${c.lvText}</i><kbd>${i+1}</kbd></button>`).join('');
+ $('cards').querySelectorAll('.ucard').forEach(b=>b.onclick=()=>choose(+b.dataset.i));}
+export function choose(i){if(pickCb&&$('cards').children[i]){const cb=pickCb;pickCb=null;$('pick').hidden=true;cb(i);}}
 export function tip(html){set('t','v',html,v=>{$('tip').innerHTML=v;$('tip').hidden=!v;});}
 export function cross(x,y){const c=$('cross');c.style.transform=`translate(${x}px,${y}px)`;}
 let hitT=0;export function hitMark(){const c=$('cross');c.classList.add('hit');clearTimeout(hitT);hitT=setTimeout(()=>c.classList.remove('hit'),90);}
@@ -25,17 +35,17 @@ export function clearFloats(){for(const f of floats)f.d.remove();floats.length=0
 export function playing(on){document.body.classList.toggle('playing',on);}
 
 // ---------- 屏幕 ----------
-const KEYS=`<div class="keys"><span><k>W</k><k>A</k><k>S</k><k>D</k></span><span>移动</span><span>鼠标 + 左键</span><span>瞄准、发射玉米粒</span><span><k>空格</k></span><span>翻滚（短暂无敌）</span><span><k>Shift</k></span><span>冲刺</span><span><k>E</k> 按住</span><span>搜索箱子</span><span><k>Q</k></span><span>扔臭蛋：熏晕一片黄鼠狼</span><span><k>Esc</k> / <k>M</k></span><span>暂停 / 静音</span></div>`;
+const KEYS=`<div class="keys"><span><k>W</k><k>A</k><k>S</k><k>D</k></span><span>移动</span><span>鼠标 + 左键</span><span>瞄准、发射玉米粒</span><span><k>空格</k></span><span>翻滚（短暂无敌）</span><span><k>Shift</k></span><span>冲刺</span><span><k>E</k> 按住</span><span>搜索箱子</span><span>打晕黄鼠狼</span><span>掉经验，升级时三选一；每 3 级武器换代</span><span><k>Q</k></span><span>扔臭蛋：熏晕一片黄鼠狼</span><span><k>Esc</k> / <k>M</k></span><span>暂停 / 静音</span></div>`;
 export function screen(kind,d={},actions={}){const s=$('screen');if(!kind){s.hidden=true;s.innerHTML='';return;}s.hidden=false;let h='';
  if(kind==='title')h=`<div class="card"><h1>萌鸡突围</h1><p>黄鼠狼巡逻队占领了林间营地。<br>带上玉米发射器，依次占领 <b>3 个撤离点</b>，每个都要守住一波围攻，<br>最后坐蛋壳飞艇离开。</p>${KEYS}
-  <div class="stats"><div><b>${d.gold}</b>金蛋库存</div><div><b>${d.coin}</b>玉米币</div><div><b>${d.wins}/${d.runs}</b>成功 / 出击</div></div>
+  <div class="stats"><div><b>${d.gold}</b>金蛋库存</div><div><b>${d.coin}</b>玉米币</div><div><b>${d.wins}/${d.runs}</b>成功 / 出击</div><div><b>${d.bestLv||1}</b>最高等级</div></div>
   <button class="btn" data-a="start">开始行动</button></div>`;
  else if(kind==='pause')h=`<div class="card"><h2>暂停</h2>${KEYS}<button class="btn" data-a="resume">继续</button><button class="btn ghost" data-a="quit">放弃这局</button><p style="font-size:12px;opacity:.6">画质：${d.q} <k>O</k> 切换</p></div>`;
  else if(kind==='dead')h=`<div class="card"><h2 style="color:#ff9a8a">被打倒了……</h2><p>巡逻队把你拖回了营地外面。</p>
-  <div class="stats"><div><b>${d.points}/3</b>撤离点</div><div><b>${d.kills}</b>打晕黄鼠狼</div><div><b>${d.time}</b>用时</div></div>
+  <div class="stats"><div><b>${d.points}/3</b>撤离点</div><div><b>${d.kills}</b>打晕黄鼠狼</div><div><b>Lv ${d.lv}</b>${d.weapon}</div><div><b>${d.time}</b>用时</div></div>
   <p><span class="kept">保住了金蛋 ×${d.gold}</span>　<span class="lost">丢失玉米币 ×${d.coin}</span></p><p style="font-size:12.5px;opacity:.7">小技巧：${d.tip}</p>
   <button class="btn" data-a="start">再来一局</button><button class="btn ghost" data-a="title">返回</button></div>`;
  else if(kind==='win')h=`<div class="card"><h2 style="color:var(--egg)">突围成功！</h2><p>蛋壳飞艇载着你飞过了树梢。</p>
-  <div class="stats"><div><b>${d.kills}</b>打晕黄鼠狼</div><div><b>${d.time}</b>用时</div><div><b>${d.hp}</b>剩余生命</div></div>
+  <div class="stats"><div><b>${d.kills}</b>打晕黄鼠狼</div><div><b>Lv ${d.lv}</b>${d.weapon}</div><div><b>${d.time}</b>用时</div><div><b>${d.hp}</b>剩余生命</div></div>
   <p class="kept">带回金蛋 ×${d.gold}　玉米币 ×${d.coin}</p><button class="btn" data-a="start">再来一局</button><button class="btn ghost" data-a="title">返回</button></div>`;
  s.innerHTML=h;s.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>actions[b.dataset.a]?.());}

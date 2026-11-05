@@ -67,16 +67,33 @@ body:not(.playing) .hud{display:none!important}
 .btn:hover{filter:brightness(1.07)}.btn:active{transform:translateY(2px);box-shadow:0 2px 0 #b08a1e}
 .btn.ghost{background:transparent;color:#eee;box-shadow:none;border:1px solid var(--line);font-size:15px;padding:8px 20px;margin-left:8px}
 .lost{color:#ff9a8a}.kept{color:var(--good)}
+/* 等级、经验 */
+.lvrow{display:flex;align-items:center;gap:8px;margin-top:8px}.lvrow b{font:600 13px ui-monospace,Consolas,monospace;color:#c8ff7a;min-width:38px}.lvrow .bar{flex:1;margin:0}#xpBar{background:#b6ff6a;width:0}
+#weapon .ws{font:12px ui-monospace,Consolas,monospace;opacity:.7;margin:-4px 0 6px}
+#ups{display:flex;flex-wrap:wrap;gap:3px;justify-content:flex-end;max-width:240px;margin:0 0 6px auto}#ups span{font-size:12px;background:rgba(255,255,255,.08);border-radius:4px;padding:1px 4px}#ups span b{font:600 10px ui-monospace,Consolas,monospace;margin-left:1px;opacity:.85}
+/* 头目血条 */
+#boss{left:50%;top:58px;transform:translateX(-50%);width:min(420px,calc(100vw - 32px));padding:6px 12px 8px;text-align:center;font:600 13px system-ui,"Microsoft YaHei";color:#ffd0a0;box-sizing:border-box}
+#boss .bar{height:8px;margin-top:5px}#bossBar{background:linear-gradient(90deg,#ff5a3a,#ffb040)}
+/* 升级三选一 */
+#pick{position:fixed;inset:0;z-index:15;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:radial-gradient(ellipse at 50% 50%,rgba(20,30,10,.35),rgba(8,10,6,.78));padding:16px;box-sizing:border-box}
+#pick h3{margin:0;font:40px var(--title);color:#c8ff7a;letter-spacing:4px;text-shadow:0 3px 0 rgba(30,60,0,.6)}#pick p{margin:-10px 0 0;font-size:13px;opacity:.8}
+#cards{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.ucard{width:190px;background:rgba(24,30,18,.92);border:1px solid rgba(200,255,122,.25);border-radius:12px;padding:16px 14px 14px;text-align:center;cursor:pointer;transition:transform .12s,border-color .12s;font:inherit;color:inherit}
+.ucard:hover,.ucard:focus-visible{transform:translateY(-4px);border-color:#c8ff7a;outline:none}
+.ucard .ic{font-size:34px;line-height:1.2}.ucard b{display:block;font:20px var(--title);color:var(--cream);margin:6px 0 4px;letter-spacing:1px}.ucard span{display:block;font-size:13px;opacity:.85;line-height:1.5;min-height:40px}
+.ucard i{display:block;font-style:normal;font:12px ui-monospace,Consolas,monospace;color:#c8ff7a;margin-top:8px}.ucard kbd{display:inline-block;margin-top:8px;font:11px ui-monospace,Consolas,monospace;border:1px solid rgba(255,255,255,.25);border-radius:3px;padding:0 5px;opacity:.7}
 @media (max-width:720px){#tip{display:none}#mission{transform:scale(.88);transform-origin:left top}}
 </style></head><body>
 <div id="mission" class="pn hud"><b>撤离行动</b><div class="chk" id="mChk"><i class="box"></i><span id="mText">到达撤离点 · 0/3</span></div><div id="mSub"></div></div>
 <div id="dist" class="pn hud"><svg viewBox="0 0 24 24" fill="#7dff9a"><circle cx="14" cy="4" r="2.4"/><path d="M12.6 7.2l-3.8 2.1-1.6 4 1.8.7 1.3-3 1.6-.8-1.6 5.6-3.6 4.4 1.6 1.3 4-4.8.9-2.6 2.3 2.6V22h2v-6.2l-2.6-3 .9-3.2 1.3 1.9 3.3 1.1.6-1.9-2.6-.9-2-3.1c-.5-.8-1.6-1.2-2.5-.8z"/></svg><span id="distT">撤离点</span><b id="distN">--</b><div id="holdBar" hidden><div></div></div></div>
 <div id="compass" class="hud"><div class="tk"></div><div class="n">N</div><div id="arrow"></div></div>
-<div id="stat" class="pn hud"><div id="hearts"></div><div class="bar"><div id="stBar"></div></div></div>
-<div id="weapon" class="pn hud"><div class="wn">武器</div><div class="wb" id="wName">玉米发射器</div><div id="buffs"></div><div id="inv"><span>💨 臭蛋<b id="iStink">2</b></span><span>🌽<b id="iCoin">0</b></span><span>🥚<b id="iGold">0</b></span></div></div>
+<div id="stat" class="pn hud"><div id="hearts"></div><div class="lvrow"><b id="lv">Lv 1</b><div class="bar"><div id="xpBar"></div></div></div><div class="bar"><div id="stBar"></div></div></div>
+<div id="weapon" class="pn hud"><div class="wn">武器</div><div class="wb" id="wName">玉米发射器</div><div class="ws" id="wStat"></div><div id="ups"></div><div id="buffs"></div><div id="inv"><span>💨 臭蛋<b id="iStink">2</b></span><span>🌽<b id="iCoin">0</b></span><span>🥚<b id="iGold">0</b></span></div></div>
 <div id="tip" class="pn hud"></div>
 <div id="cross" class="hud"><svg viewBox="-17 -17 34 34"><circle r="9" fill="none" stroke="#fff" stroke-width="1.6" opacity=".9"/><line x1="0" y1="-15" x2="0" y2="-11" stroke="#fff" stroke-width="1.6"/><line x1="0" y1="15" x2="0" y2="11" stroke="#fff" stroke-width="1.6"/><line x1="-15" y1="0" x2="-11" y2="0" stroke="#fff" stroke-width="1.6"/><line x1="15" y1="0" x2="11" y2="0" stroke="#fff" stroke-width="1.6"/><circle r="1.4" fill="#fff"/></svg></div>
 <div id="prompt" class="hud" hidden><span class="k">E</span><span id="pText">搜索</span><div class="bar"><div id="pBar"></div></div></div>
+<div id="boss" class="pn hud" hidden><span id="bossName"></span><div class="bar"><div id="bossBar"></div></div></div>
+<div id="pick" hidden><h3>升级！</h3><p>选择一项强化，按 <b>1</b> / <b>2</b> / <b>3</b> 或点击</p><div id="cards"></div></div>
 <div id="banner"><b id="bT"></b><span id="bS"></span></div>
 <div id="screen" class="scr"></div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>

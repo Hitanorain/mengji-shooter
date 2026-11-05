@@ -66,6 +66,9 @@ body:not(.playing) .hud{display:none!important}
 .btn{font:20px var(--title);letter-spacing:3px;background:var(--egg);color:var(--ink);border:0;border-radius:10px;padding:10px 34px;margin-top:14px;cursor:pointer;box-shadow:0 4px 0 #b08a1e}
 .btn:hover{filter:brightness(1.07)}.btn:active{transform:translateY(2px);box-shadow:0 2px 0 #b08a1e}
 .btn.ghost{background:transparent;color:#eee;box-shadow:none;border:1px solid var(--line);font-size:15px;padding:8px 20px;margin-left:8px}
+.card a.lobby{display:inline-block;font-size:15px;letter-spacing:2px;color:#eee;text-decoration:none;border:1px solid var(--line);border-radius:10px;padding:8px 20px;margin:14px 0 0 8px;vertical-align:baseline}
+.card a.lobby:hover{background:rgba(255,255,255,.08)}.card a.lobby:focus-visible,.btn:focus-visible{outline:2px solid var(--egg);outline-offset:3px}
+.lobbyrow{text-align:left;margin:-10px 0 4px -8px}.card a.lobby.top{margin:0;padding:5px 12px;font-size:13px;letter-spacing:1px;opacity:.8}.card a.lobby.top:hover{opacity:1}
 .lost{color:#ff9a8a}.kept{color:var(--good)}
 /* 等级、经验 */
 .lvrow{display:flex;align-items:center;gap:8px;margin-top:8px}.lvrow b{font:600 13px ui-monospace,Consolas,monospace;color:#c8ff7a;min-width:38px}.lvrow .bar{flex:1;margin:0}#xpBar{background:#b6ff6a;width:0}

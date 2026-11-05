@@ -95,8 +95,14 @@ export function mesh(geo,m,x,y,z,par=scene){const me=new THREE.Mesh(geo,m);me.po
 function scatter(geo,mat,list,shadow=true){if(!list.length)return null;const im=new THREE.InstancedMesh(geo,mat,list.length),m=new THREE.Matrix4(),q=new THREE.Quaternion(),c=new THREE.Color();
  list.forEach((o,i)=>{q.setFromEuler(new THREE.Euler(o.rx||0,o.ry??rnd()*6.28,o.rz||0));m.compose(new THREE.Vector3(o.x,o.y||0,o.z),q,new THREE.Vector3(o.sx||o.s||1,o.sy||o.s||1,o.sz||o.s||1));im.setMatrixAt(i,m);im.setColorAt(i,c.setHSL(o.h??0,o.sat??0,o.l??1));});
  im.castShadow=shadow;im.receiveShadow=true;scene.add(im);return im;}
-const mVeg=STD({vertexColors:true,flatShading:true,roughness:.9},{cut:true});
-const mVegSolid=STD({vertexColors:true,flatShading:true,roughness:.9});
+const mVeg=STD({vertexColors:true,flatShading:true,roughness:.85},{cut:true,det:[3.2,.25,.16,1]});
+const mVegSolid=STD({vertexColors:true,flatShading:true,roughness:.85},{det:[4,.3,.18,1]});
+// 树冠、灌木随风轻轻摇
+function sway(m,h0,amp){const ob=m.onBeforeCompile;m.onBeforeCompile=(sh,r)=>{ob(sh,r);sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nuniform float uTime;').replace('#include <begin_vertex>',`#include <begin_vertex>
+#ifdef USE_INSTANCING
+{vec4 wp=instanceMatrix*vec4(0.,0.,0.,1.);float h=max(position.y-${h0.toFixed(2)},0.);transformed.x+=sin(uTime*1.1+wp.x*.4+wp.z*.3)*h*${amp.toFixed(3)};transformed.z+=cos(uTime*.9+wp.z*.5+wp.x*.2)*h*${(amp*.7).toFixed(3)};}
+#endif`);};}
+sway(mVeg,1.6,.035);sway(mVegSolid,.2,.04);
 
 // 关键区域：装饰物不要放进去
 const KEEP=[[...START,3.5],[...OUTPOST_A,5],[...OUTPOST_B,6],[TRUCK[0],TRUCK[1],5],...EXITS.map(e=>[e.x,e.z,EXIT_R+1.6])];
@@ -107,11 +113,11 @@ const IN=[BOUNDS.x0+1,BOUNDS.x1-1,BOUNDS.z0+1,BOUNDS.z1-1];
 
 // ---------- 道具材质 ----------
 const crateT=tex(makeCrateTex()),ammoT=tex(makeAmmoTex());
-const mCrate=STD({map:crateT,bumpMap:crateT,bumpScale:1.2,roughness:.85}),mCrateOpen=STD({map:crateT,color:0x777066,roughness:.9});
-const mAmmo=STD({map:ammoT,roughness:.7,metalness:.15});
-const mBarrel=STD({color:0xb02a1e,roughness:.45,metalness:.35}),mBand=STD({color:0x3a1410,roughness:.5,metalness:.5}),mBarrelTop=STD({color:0x8e231a,roughness:.5,metalness:.4});
-const mWood=STD({color:0x6e4a2e,roughness:.95}),mWoodTop=STD({color:0xc9a273,roughness:.9}),mPole=STD({color:0x5e4129,roughness:.9},{cut:true}),mWire=new THREE.MeshBasicMaterial({color:0x1a1a1a});
-const mFence=STD({color:0x8a6440,roughness:.9});
+const mCrate=STD({map:crateT,bumpMap:crateT,bumpScale:1.4,roughness:.85},{det:[9,.12,.12,.3]}),mCrateOpen=STD({map:crateT,color:0x777066,roughness:.9});
+const mAmmo=STD({map:ammoT,roughness:.65,metalness:.25},{det:[7,.15,.18,1]});
+const mBarrel=STD({color:0xb02a1e,roughness:.4,metalness:.45},{det:[5,.12,.22,.4]}),mBand=STD({color:0x3a1410,roughness:.45,metalness:.6},{det:[8,.1,.2,1]}),mBarrelTop=STD({color:0x8e231a,roughness:.45,metalness:.5},{det:[6,.15,.25,1]});
+const mWood=STD({color:0x6e4a2e,roughness:.92},{det:[6,.35,.3,.25]}),mWoodTop=STD({color:0xc9a273,roughness:.85},{det:[14,.2,.22,1]}),mPole=STD({color:0x5e4129,roughness:.9},{cut:true,det:[8,.3,.28,.15]}),mWire=new THREE.MeshBasicMaterial({color:0x1a1a1a});
+const mFence=STD({color:0x8a6440,roughness:.9},{det:[8,.3,.28,.2]});
 
 // ---------- 木箱、弹药箱、油桶 ----------
 function crate(x,z,s=.9,ry=rr(-.4,.4),search=false,y0=0){const m=mesh(new THREE.BoxGeometry(s,s,s),mCrate,x,y0+s/2,z);m.rotation.y=ry;
@@ -152,12 +158,12 @@ crate(OUTPOST_B[0]+1.8,OUTPOST_B[1]-2.6,1,.15,true);crate(OUTPOST_B[0]+1.8,OUTPO
 crate(OUTPOST_B[0]-3.4,OUTPOST_B[1]-4.4,.9,.2,true);
 // 旗杆 + 红旗
 {const[cx,cz]=OUTPOST_B;mesh(new THREE.CylinderGeometry(.06,.07,4.4,8),mPole,cx-1,2.2,cz-4.4);
- const fl=new THREE.Mesh(new THREE.PlaneGeometry(1.4,.85,8,2),STD({color:0xb3261e,roughness:.8,side:THREE.DoubleSide}));fl.position.set(cx-.28,3.9,cz-4.4);fl.castShadow=true;scene.add(fl);flag=fl;}
+ const fl=new THREE.Mesh(new THREE.PlaneGeometry(1.4,.85,8,2),STD({color:0xb3261e,roughness:.8,side:THREE.DoubleSide},{det:[20,.25,.15,1]}));fl.position.set(cx-.28,3.9,cz-4.4);fl.castShadow=true;scene.add(fl);flag=fl;}
 var flag;
 
 // ---------- 军绿卡车（停在土路上） ----------
-{const g=new THREE.Group(),mg=STD({color:0x4a5730,roughness:.65,metalness:.25},{cut:true}),mc=STD({color:0x5b6a3a,roughness:.95},{cut:true}),gl=STD({color:0x1c262c,roughness:.12,metalness:.7}),
-  tire=STD({color:0x1d1d1b,roughness:.9}),hub=STD({color:0x3c4428,roughness:.6,metalness:.4}),dk=STD({color:0x24251f,roughness:.8}),lamp=STD({color:0xfff2c0,emissive:0xffe090,emissiveIntensity:.6});
+{const g=new THREE.Group(),mg=STD({color:0x4a5730,roughness:.55,metalness:.35},{cut:true,det:[4,.15,.2,1]}),mc=STD({color:0x5b6a3a,roughness:.95},{cut:true,det:[11,.4,.16,1]}),gl=STD({color:0x1c262c,roughness:.12,metalness:.7}),
+  tire=STD({color:0x1d1d1b,roughness:.85},{det:[16,.5,.2,1]}),hub=STD({color:0x3c4428,roughness:.5,metalness:.5},{det:[8,.1,.2,1]}),dk=STD({color:0x24251f,roughness:.75},{det:[6,.15,.25,1]}),lamp=STD({color:0xfff2c0,emissive:0xffe090,emissiveIntensity:.6});
  mesh(new THREE.BoxGeometry(5.6,.38,2.1),dk,0,.7,0,g);
  mesh(new THREE.BoxGeometry(1.6,1.35,2.05),mg,1.85,1.55,0,g);mesh(new THREE.BoxGeometry(1.05,.85,1.95),mg,2.85,1.27,0,g);
  mesh(new THREE.BoxGeometry(.08,.6,1.7),gl,2.36,1.9,0,g);for(const s of[-1,1])mesh(new THREE.BoxGeometry(.95,.55,.06),gl,1.85,1.88,s*1.03,g);
@@ -206,7 +212,7 @@ function broadleaf(){const parts=[colorize(new THREE.CylinderGeometry(.14,.22,2.
  for(const[x,z,s]of[[5.6,17.6,1.3],[-6.2,22.4,1.25],[19.5,17,1.2],[-9,9,1.2]])if(!blocked(x,z,-1.6,true)){big.push({x,z,y:-.1,s,sy:s*.8,l:1});ob(x,z,s*.62,{tall:true,kind:'rock'});}
  for(let i=0;i<22;i++){const p=freeSpot(...IN,.6);if(!p)continue;const s=rr(.55,.8);mid.push({x:p[0],z:p[1],y:-.05,s,sy:s*rr(.55,.7),l:1});ob(p[0],p[1],s*.58,{kind:'rock'});}
  for(let i=0;i<120;i++){const x=rr(-40,40),z=rr(-42,38);if(blocked(x,z,-.4,false))continue;small.push({x,z,y:-.02,s:rr(.1,.26),sy:rr(.08,.18),l:1});}
- const rockGeo=colorize(lumpy(new THREE.DodecahedronGeometry(.62,1),.1),(c,y)=>c.setHSL(rr(.07,.1),.06,.36+y*.14+rr(-.03,.03))),m=STD({vertexColors:true,flatShading:true,roughness:.88});
+ const rockGeo=colorize(lumpy(new THREE.DodecahedronGeometry(.62,1),.1),(c,y)=>c.setHSL(rr(.07,.1),.06,.36+y*.14+rr(-.03,.03))),m=STD({vertexColors:true,flatShading:true,roughness:.82},{det:[2.6,.9,.32,1]});
  scatter(rockGeo,m,big);scatter(rockGeo,m,mid);scatter(colorize(new THREE.DodecahedronGeometry(1,0),c=>c.setHSL(.08,.05,rr(.36,.5))),m,small,false);}
 
 // ---------- 树桩、倒木 ----------
@@ -254,7 +260,7 @@ function flower(petal){const parts=[],stem=new THREE.BufferGeometry();stem.setAt
  scatter(tuft(9,.35,.85,[.2,.36,.09],[.6,.8,.27]),mGrass,tall.slice(0,20000),false);
  scatter(tuft(6,.16,.36,[.24,.4,.1],[.52,.72,.22],.2),mGrass,short,false);
  for(const[i,petal]of[[1,.97,.92],[1,.85,.2],[.8,.64,1]].entries())scatter(flower(petal),mGrass,fl[i],false);}
-scatter(bagGeo,STD({roughness:.95}),bagList);
+scatter(bagGeo,STD({roughness:.95},{det:[13,.45,.2,1]}),bagList);
 
 // ---------- 矮掩体旁的掩护点（敌人用） ----------
 export const coverSpots=[];

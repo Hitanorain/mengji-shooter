@@ -2,18 +2,22 @@
 import {THREE,scene,STD} from './engine.js';
 
 const sph=(r,ws=24,hs=16)=>new THREE.SphereGeometry(r,ws,hs);
-function kit(){const mats=[],M=p=>{const m=STD(p);m.userData.e=m.emissive.clone();mats.push(m);return m;};
+function kit(){const mats=[],M=(p,o)=>{const m=STD(p,o);m.userData.e=m.emissive.clone();mats.push(m);return m;};
  const add=(par)=>(geo,m,x,y,z,s=[1,1,1])=>{const me=new THREE.Mesh(geo,m);me.position.set(x,y,z);me.scale.set(...s);me.castShadow=me.receiveShadow=true;par.add(me);return me;};
  return{mats,M,add};}
 // 受击闪白：k = 0..1
 export function flash(d,k){for(const m of d.mats)m.emissive.copy(m.userData.e).lerp(WHITE,k);}
 const WHITE=new THREE.Color(1,1,1);
 
+// 脚下的软阴影
+const blobTex=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d'),g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.5,'rgba(255,255,255,.55)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,64,64);return new THREE.CanvasTexture(c);})();
+const blobMat=new THREE.MeshBasicMaterial({color:0x0a1205,alphaMap:blobTex,transparent:true,opacity:.42,depthWrite:false});
+function blob(g,r){const m=new THREE.Mesh(new THREE.PlaneGeometry(r*2,r*2),blobMat);m.rotation.x=-Math.PI/2;m.position.y=.025;m.renderOrder=1;g.add(m);return m;}
 // ---------- 萌鸡士兵：圆身体、绿头盔、小背包、玉米发射器 ----------
 export function makeChick(o={}){const{mats,M,add}=kit(),g=new THREE.Group(),body=new THREE.Group(),feet=[];g.add(body);const mk=add(body);
- const mB=M({color:o.body??0xffd447,roughness:.85}),mBelly=M({color:0xfff0b4,roughness:.9}),mO=M({color:0xf2942a,roughness:.5}),mK=M({color:0x141414,roughness:.25}),
-  mW=M({color:0xffffff,emissive:0xffffff,emissiveIntensity:.6}),mP=M({color:0xff9a9a,roughness:.9}),mH=M({color:o.helmet??0x5f7d38,roughness:.6,metalness:.1}),mH2=M({color:0x4a6229,roughness:.7}),
-  mPack=M({color:0x7a6038,roughness:.9}),mRoll=M({color:0x6f7d42,roughness:.95}),mGun=M({color:0x3c4628,roughness:.6,metalness:.3}),mMet=M({color:0x2a2b27,roughness:.4,metalness:.7}),
+ const mB=M({color:o.body??0xffd447,roughness:.85},{det:[18,.2,.07,1],rim:[.38,.32,.18]}),mBelly=M({color:0xfff0b4,roughness:.9},{det:[20,.15,.05,1],rim:[.3,.28,.2]}),mO=M({color:0xf2942a,roughness:.5}),mK=M({color:0x141414,roughness:.25}),
+  mW=M({color:0xffffff,emissive:0xffffff,emissiveIntensity:.6}),mP=M({color:0xff9a9a,roughness:.9}),mH=M({color:o.helmet??0x5f7d38,roughness:.5,metalness:.2},{det:[9,.3,.16,1],rim:[.12,.15,.1]}),mH2=M({color:0x4a6229,roughness:.7},{det:[12,.25,.15,1]}),
+  mPack=M({color:0x7a6038,roughness:.9},{det:[16,.4,.18,1]}),mRoll=M({color:0x6f7d42,roughness:.95},{det:[18,.45,.15,1]}),mGun=M({color:0x3c4628,roughness:.5,metalness:.4},{det:[10,.15,.2,1]}),mMet=M({color:0x2a2b27,roughness:.4,metalness:.7}),
   mCorn=M({color:0xf7c83a,roughness:.5,emissive:0x3a2a00}),mLeaf=M({color:0x8cc04a,roughness:.8});
  mk(sph(.42),mB,0,.5,0,[1,.92,1.04]);mk(sph(.3),mBelly,0,.46,.17,[1,.95,.72]);
  mk(sph(.31),mB,0,.98,.06);
@@ -39,13 +43,14 @@ export function makeChick(o={}){const{mats,M,add}=kit(),g=new THREE.Group(),body
  gk(new THREE.CapsuleGeometry(.065,.2,4,10),mCorn,0,.13,.02).rotation.x=Math.PI/2;
  for(const a of[-.5,0,.5]){const l=gk(new THREE.ConeGeometry(.035,.16,4),mLeaf,a*.06,.14,-.17);l.rotation.x=-Math.PI/2-.5;l.rotation.z=a;}
  const muzzle=new THREE.Object3D();muzzle.position.set(0,.02,.56);gun.add(muzzle);
+ blob(g,.62);
  if(o.scale)g.scale.setScalar(o.scale);
  (o.parent||scene).add(g);return{g,body,feet,gun,muzzle,mats,ph:0};}
 
 // ---------- 黄鼠狼士兵：黑头盔、红围巾、长尾巴，拿步枪或木棒 ----------
 export function makeWeasel(o={}){const{mats,M,add}=kit(),g=new THREE.Group(),body=new THREE.Group(),feet=[];g.add(body);const mk=add(body);
- const mF=M({color:o.fur??0x9a683a,roughness:.9}),mC=M({color:0xf0dcb8,roughness:.9}),mK=M({color:0x111111,roughness:.3}),mW=M({color:0xffffff,emissive:0xffffff,emissiveIntensity:.5}),
-  mHel=M({color:o.helmet??0x262626,roughness:.45,metalness:o.helmet?.6:.25}),mR=M({color:o.scarf??0xc8261c,roughness:.85}),mGun=M({color:0x2b2b2b,roughness:.4,metalness:.6}),mStock=M({color:0x6a4426,roughness:.8});
+ const mF=M({color:o.fur??0x9a683a,roughness:.9},{det:[16,.3,.12,.6],rim:[.22,.16,.1]}),mC=M({color:0xf0dcb8,roughness:.9},{det:[18,.2,.08,1],rim:[.2,.18,.14]}),mK=M({color:0x111111,roughness:.3}),mW=M({color:0xffffff,emissive:0xffffff,emissiveIntensity:.5}),
+  mHel=M({color:o.helmet??0x262626,roughness:.4,metalness:o.helmet?.6:.3},{det:[10,.22,.15,1],rim:[.1,.1,.1]}),mR=M({color:o.scarf??0xc8261c,roughness:.85},{det:[22,.35,.15,1]}),mGun=M({color:0x2b2b2b,roughness:.4,metalness:.6}),mStock=M({color:0x6a4426,roughness:.8});
  const tr=mk(new THREE.CapsuleGeometry(.25,.6,6,14),mF,0,.62,-.04);tr.rotation.x=.3;
  const bl=mk(new THREE.CapsuleGeometry(.18,.48,6,12),mC,0,.64,.08);bl.rotation.x=.3;
  mk(sph(.22),mF,0,1.14,.16,[1,.95,1.15]);
@@ -66,6 +71,7 @@ export function makeWeasel(o={}){const{mats,M,add}=kit(),g=new THREE.Group(),bod
  if(o.club){const c=gk(new THREE.CylinderGeometry(.06,.035,.7,8),mStock,0,.2,.1);c.rotation.x=-.9;muzzle=new THREE.Object3D();muzzle.position.set(0,.45,.4);gun.add(muzzle);}
  else{gk(new THREE.BoxGeometry(.08,.12,.6),mGun,0,0,.1);gk(new THREE.BoxGeometry(.09,.14,.3),mStock,0,-.02,-.28);gk(new THREE.CylinderGeometry(.025,.025,.3,8),mGun,0,.02,.52).rotation.x=Math.PI/2;
   gk(new THREE.BoxGeometry(.05,.16,.07),mGun,0,-.12,.08);muzzle=new THREE.Object3D();muzzle.position.set(0,.02,.7);gun.add(muzzle);}
+ blob(g,.6);
  if(o.scale)g.scale.setScalar(o.scale);
  scene.add(g);return{g,body,feet,gun,muzzle,mats,ph:0,tail};}
 

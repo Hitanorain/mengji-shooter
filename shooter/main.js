@@ -1,5 +1,5 @@
 // 萌鸡突围 · 主循环：玩家、黄鼠狼 AI、子弹、成长（经验、三选一、武器换代）、道具、搜箱、臭蛋、油桶、撤离点坚守、增援、头目、结算
-import {THREE,scene,camera,composer,sun,SUNOFF,POOL,finalPass,quality,setQuality,clamp,lr,lpick,angLerp} from './engine.js';
+import {THREE,scene,camera,composer,placeSun,adapt,POOL,finalPass,quality,setQuality,clamp,lr,lpick,angLerp} from './engine.js';
 import * as map from './map.js';
 import {makeChick,makeWeasel,animWalk,flash,makeBullet,makePickup,PICKUPS,makeMark,setMark,makeBar,makeStars,makeAirship} from './models.js';
 import {TIERS,TIER_LV,UPGRADES,REGEN_T,LEECH_N,BULLET_BUFFS,xpNeed,weaponStats,rollChoices} from './upgrades.js';
@@ -357,7 +357,7 @@ function updateCamera(dt,snap){const lead=.2,tx=P.x+clamp(aim.x-P.x,-8,8)*lead,t
  if(snap)camT.set(tx,0,tz);else{camT.x+=(tx-camT.x)*Math.min(1,dt*5);camT.z+=(tz-camT.z)*Math.min(1,dt*5);}
  shake=Math.max(0,shake-dt*1.8);const s=shake*shake*.6;
  camera.position.set(camT.x+CAMOFF.x*zoom+lr(-s,s),CAMOFF.y*zoom+lr(-s,s),camT.z+CAMOFF.z*zoom+lr(-s,s));camera.lookAt(camT.x,0,camT.z-1);
- const sx=Math.round(camT.x*2)/2,sz=Math.round(camT.z*2)/2;sun.position.set(sx+SUNOFF.x,SUNOFF.y,sz+SUNOFF.z);sun.target.position.set(sx,0,sz);
+ placeSun(camT.x,camT.z);
  POOL.uPP.value.set(P.x,0,P.z);}
 
 // ---------- HUD ----------
@@ -407,10 +407,10 @@ function updateVictory(dt){if(winT<0)return;winT+=dt;const E=map.EXITS[map.EXITS
 function tick(dt){stats.time+=dt;updatePlayer(dt);updateExit(dt);updateReinforce(dt);
  for(let i=foes.length-1;i>=0;i--)if(!updateFoe(foes[i],dt))foes.splice(i,1);separate();
  updateBullets(dt);updateThrows(dt);updatePicks(dt);updateSearch(dt);updateVictory(dt);}
-let last=performance.now(),slow=0;
-function frame(now){requestAnimationFrame(frame);const raw=Math.min(.05,(now-last)/1000);last=now;const dt=state==='play'?raw:0;T+=raw;
- // 帧率太低时自动降画质
- if(quality.high&&raw>.034){slow+=raw;if(slow>3){setQuality(false);slow=0;}}else slow=Math.max(0,slow-raw*.5);
+let last=performance.now();
+function frame(now){requestAnimationFrame(frame);const ms=now-last,raw=Math.min(.05,ms/1000);last=now;const dt=state==='play'?raw:0;T+=raw;
+ // 按帧率动态调渲染分辨率，太卡时自动关环境光遮蔽
+ adapt(ms,now);
  if(state==='play'){updateAim();tick(dt);updateHud(dt);}
  if(state==='pick')hud.updateFloats(0,project);
  if(state==='title'){// 标题界面：镜头在营地上空缓缓移动

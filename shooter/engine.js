@@ -92,13 +92,37 @@ gl_FragColor.rgb=poolApply(gl_FragColor.rgb);`);
  return m;}
 export const STD=(p,o)=>pooled(new THREE.MeshStandardMaterial(p),o);
 
+// 太阳影子跟着镜头走：按影子贴图的像素对齐，移动时影子边缘不会闪
+const _up=new THREE.Vector3(0,1,0),_ld=SUNOFF.clone().normalize(),_lr=new THREE.Vector3().crossVectors(_up,_ld).normalize(),_lu=new THREE.Vector3().crossVectors(_ld,_lr);
+export function placeSun(x,z){const t=(sun.shadow.camera.right-sun.shadow.camera.left)/sun.shadow.mapSize.x;
+ const a=Math.round((x*_lr.x+z*_lr.z)/t)*t,b=Math.round((x*_lu.x+z*_lu.z)/t)*t,c=x*_ld.x+z*_ld.z;
+ sun.target.position.set(_lr.x*a+_lu.x*b+_ld.x*c,_lr.y*a+_lu.y*b+_ld.y*c,_lr.z*a+_lu.z*b+_ld.z*c);sun.position.copy(sun.target.position).add(SUNOFF);}
+
 // ---------- 后期 ----------
+// 只有场景本身需要 4 倍抗锯齿；后面的全屏处理写进不带抗锯齿的缓冲，省显存带宽
 const rt=new THREE.WebGLRenderTarget(innerWidth,innerHeight,{type:THREE.HalfFloatType,samples:4});
-export const composer=new EffectComposer(renderer,rt);
+export const composer=new EffectComposer(renderer,rt);composer.renderTarget2.samples=0;
 composer.addPass(new RenderPass(scene,camera));
 export const ao=new GTAOPass(scene,camera,innerWidth,innerHeight);ao.updateGtaoMaterial({radius:.6,distanceExponent:1.6,thickness:1,scale:1.15});ao.blendIntensity=.9;composer.addPass(ao);
 // 环境光遮蔽只看实心物体：头顶标记、光柱、脚下软阴影这类半透明东西不参与，否则会压出黑方块
 ao.overrideVisibility=function(){const cache=this._visibilityCache;this.scene.traverse(o=>{cache.set(o,o.visible);if(o.isPoints||o.isLine||o.isSprite||(o.material&&o.material.transparent))o.visible=false;});};
+// 环境光遮蔽用半分辨率算（柔和的东西看不出差别，开销降到四分之一）；
+// 直接乘到当前画面上，省掉一次整屏复制；画法线时不再重画一遍影子贴图
+const AO_SCALE=.5,aoSetSize=ao.setSize.bind(ao);
+ao.setSize=(w,h)=>aoSetSize(Math.max(1,Math.round(w*AO_SCALE)),Math.max(1,Math.round(h*AO_SCALE)));
+ao.needsSwap=false;
+ao.render=function(r,writeBuffer,readBuffer){
+ const sm=r.shadowMap.autoUpdate;r.shadowMap.autoUpdate=false;
+ this.overrideVisibility();this.renderOverride(r,this.normalMaterial,this.normalRenderTarget,0x7777ff,1);this.restoreVisibility();
+ r.shadowMap.autoUpdate=sm;
+ const u=this.gtaoMaterial.uniforms,cam=this.camera;u.cameraNear.value=cam.near;u.cameraFar.value=cam.far;
+ u.cameraProjectionMatrix.value.copy(cam.projectionMatrix);u.cameraProjectionMatrixInverse.value.copy(cam.projectionMatrixInverse);u.cameraWorldMatrix.value.copy(cam.matrixWorld);
+ this.renderPass(r,this.gtaoMaterial,this.gtaoRenderTarget,0xffffff,1);
+ this.pdMaterial.uniforms.cameraProjectionMatrixInverse.value.copy(cam.projectionMatrixInverse);
+ this.renderPass(r,this.pdMaterial,this.pdRenderTarget,0xffffff,1);
+ this.blendMaterial.uniforms.intensity.value=this.blendIntensity;this.blendMaterial.uniforms.tDiffuse.value=this.pdRenderTarget.texture;
+ this.renderPass(r,this.blendMaterial,readBuffer);};
+ao.setSize(innerWidth,innerHeight);
 export const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.32,.55,.92);composer.addPass(bloom);
 composer.addPass(new OutputPass());
 // 移轴模糊（上下边缘）+ 调色 + 暗角 + 受伤红边
@@ -106,8 +130,9 @@ export const finalPass=new ShaderPass({uniforms:{tDiffuse:{value:null},uRes:{val
  vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
  fragmentShader:`uniform sampler2D tDiffuse;uniform vec2 uRes;uniform float uHurt,uTilt,uTime,uShaft;varying vec2 vUv;
 void main(){float b=smoothstep(.2,.52,abs(vUv.y-.5))*4.2*uTilt;vec3 c=vec3(0.);
- for(int i=0;i<12;i++){float a=float(i)*2.39996;float r=sqrt((float(i)+.5)/12.);c+=texture2D(tDiffuse,vUv+vec2(cos(a),sin(a))*r*b/uRes).rgb;}
- c/=12.;float l=dot(c,vec3(.299,.587,.114));c=mix(vec3(l),c,1.18);c=mix(c,c*c*(3.-2.*c),.16);
+ // 画面中间不模糊，只采一次
+ if(b<.08)c=texture2D(tDiffuse,vUv).rgb;
+ else{for(int i=0;i<12;i++){float a=float(i)*2.39996;float r=sqrt((float(i)+.5)/12.);c+=texture2D(tDiffuse,vUv+vec2(cos(a),sin(a))*r*b/uRes).rgb;}c/=12.;}float l=dot(c,vec3(.299,.587,.114));c=mix(vec3(l),c,1.18);c=mix(c,c*c*(3.-2.*c),.16);
  // 冷暖分离：暗部偏青蓝，亮部偏暖金
  float sh=1.-smoothstep(.05,.45,l),hi=smoothstep(.45,.95,l);c*=mix(vec3(1.),vec3(.88,.97,1.1),sh*.55);c*=mix(vec3(1.),vec3(1.07,1.0,.88),hi*.6);
  // 阳光光束：从左上角斜射下来，慢慢飘动
@@ -117,9 +142,22 @@ void main(){float b=smoothstep(.2,.52,abs(vUv.y-.5))*4.2*uTilt;vec3 c=vec3(0.);
  vec2 q=vUv-.5;float v=dot(q,q);c*=1.-v*.6;c=mix(c,vec3(.78,.08,.05),clamp(v*2.6-.12,0.,1.)*uHurt);gl_FragColor=vec4(c,1.);}`});
 composer.addPass(finalPass);
 
-// ---------- 画质：高（环境光遮蔽、1.5 倍像素）/ 低。帧率太低时自动降档 ----------
-export const quality={high:true};
-export function setQuality(high){quality.high=high;ao.enabled=high;const ms=high?4096:2048;if(sun.shadow.mapSize.x!==ms){sun.shadow.mapSize.set(ms,ms);if(sun.shadow.map){sun.shadow.map.dispose();sun.shadow.map=null;}}renderer.setPixelRatio(high?Math.min(devicePixelRatio,1.5):1);resize();}
-function resize(){const w=innerWidth,h=innerHeight,pr=renderer.getPixelRatio();camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h);composer.setPixelRatio(pr);composer.setSize(w,h);finalPass.uniforms.uRes.value.set(w*pr,h*pr);}
+// ---------- 画质：高（环境光遮蔽、4096 影子）/ 低 ----------
+// 渲染像素有上限：大屏、高分屏不会按满分辨率硬算（移轴、泛光本来就是柔的，略低一点看不出来）。
+// 再按实际帧率动态调渲染分辨率（scale），一直卡才关环境光遮蔽。
+const BUDGET={high:2.4e6,low:1.5e6};
+export const quality={high:true,scale:1};
+function targetPR(){const w=innerWidth,h=innerHeight,cap=Math.min(devicePixelRatio,quality.high?1.5:1);
+ return Math.max(.5,Math.min(cap,Math.sqrt(BUDGET[quality.high?'high':'low']/(w*h)))*quality.scale);}
+export function setQuality(high){quality.high=high;ao.enabled=high;const ms=high?4096:2048;if(sun.shadow.mapSize.x!==ms){sun.shadow.mapSize.set(ms,ms);if(sun.shadow.map){sun.shadow.map.dispose();sun.shadow.map=null;}}resize();}
+function resize(){const w=innerWidth,h=innerHeight,pr=targetPR();camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setPixelRatio(pr);renderer.setSize(w,h);composer.setPixelRatio(pr);composer.setSize(w,h);finalPass.uniforms.uRes.value.set(w*pr,h*pr);}
 addEventListener('resize',resize);
 setQuality(!/[?&]low\b/.test(location.search));
+// 每秒看一次平均帧时间：低于约 50 帧就降一档分辨率，持续流畅再慢慢升回去（升上去又卡就记住这个上限）
+let aSum=0,aN=0,aT=0,good=0,ceil=1,lastUp=-1e9,worst=0;
+export function adapt(ms,now){if(ms>250||window.__noAdapt)return;   // 测性能时可在控制台设 __noAdapt=true 关掉自动调节aSum+=ms;aN++;if(now-aT<1000)return;
+ const avg=aSum/aN;aSum=aN=0;aT=now;const s0=quality.scale;
+ if(avg>20){good=0;if(now-lastUp<4000)ceil=Math.max(.6,s0-.1);
+  if(s0>.6){quality.scale=Math.round((s0-.1)*10)/10;resize();}
+  else if(quality.high&&avg>25&&++worst>=3){worst=0;setQuality(false);}}
+ else{worst=0;if(avg<17.8&&s0<ceil&&++good>=4){good=0;quality.scale=Math.min(ceil,Math.round((s0+.1)*10)/10);lastUp=now;resize();}}}

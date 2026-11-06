@@ -203,6 +203,10 @@ function broadleaf(){const parts=[colorize(new THREE.CylinderGeometry(.14,.22,2.
  for(let x=-50;x<=50;x+=2.8)for(let z=-50;z<=46;z+=2.8){const px=x+rr(-1.1,1.1),pz=z+rr(-1.1,1.1);if(px>BOUNDS.x0-1.5&&px<BOUNDS.x1+1.5&&pz>BOUNDS.z0-1.5&&pz<BOUNDS.z1+6)continue;if(roadDist(px,pz)<RW+.8)continue;
   (rnd()<.55?tp:tb).push({x:px,z:pz,s:rr(.95,1.5),l:1});}
  for(let i=0;i<26;i++){const p=freeSpot(...IN,1.6);if(!p)continue;const big=rnd()<.6;(big?tp:tb).push({x:p[0],z:p[1],s:rr(.85,1.2),l:1});ob(p[0],p[1],.3,{tall:true,kind:'tree'});}
+ // 几片小树林：草地上要有大块的树荫
+ for(let g=0;g<7;g++){const c=freeSpot(...IN,3.2);if(!c)continue;const n=3+Math.floor(rnd()*3);
+  for(let i=0;i<n;i++){const a=rnd()*6.28,d=i?rr(1.6,2.8):0,x=c[0]+Math.cos(a)*d,z=c[1]+Math.sin(a)*d;if(i&&blocked(x,z,.4))continue;
+   (rnd()<.45?tp:tb).push({x,z,s:rr(1,1.4),l:1});ob(x,z,.32,{tall:true,kind:'tree'});}}
  scatter(pine(),mVeg,tp);scatter(broadleaf(),mVeg,tb);}
 
 // ---------- 石头（大块 = 高掩体，中块 = 矮掩体，小块装饰） ----------

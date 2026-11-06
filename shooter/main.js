@@ -418,7 +418,7 @@ function frame(now){requestAnimationFrame(frame);const raw=Math.min(.05,(now-las
  if(state==='play'||state==='title')updateCamera(raw,false);
  map.updateMap(raw,T,active,holding&&holdIn);fx.updateFx(state==='pause'||state==='pick'?0:raw);
  if(airship.visible)airship.userData.prop.rotation.x+=raw*12;
- composer.render(raw);}
+ finalPass.uniforms.uTime.value=T;composer.render(raw);}
 resetPlayer();P.x=0;P.z=8;updateCamera(0,true);showTitle();requestAnimationFrame(frame);
 // 调试用：在控制台里 window.__game 可以看到状态
 window.__game={P,foes,map,mouse,aim,keys,bullets,picks,stats,start:startRun,choose:i=>hud.choose(i),addXp,

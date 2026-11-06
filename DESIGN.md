@@ -92,7 +92,7 @@
 
 ## 10. 开发里程碑
 
-1. [x] **M1 可玩原型**（`shooter.html` + `shooter/`）：
+1. [x] **M1 可玩原型**（`index.html` + `shooter/`）：
    - 移动、冲刺、翻滚无敌、鼠标瞄准发射玉米粒，命中炸出爆米花
    - 步枪黄鼠狼（找矮掩体、瞄准时枪口冒红光、三连发）和冲锋黄鼠狼（绕路冲过来挥棒），A* 网格寻路
    - 掩体规则：大石头、卡车、树干挡住一切子弹；沙袋、木箱、倒木这类矮掩体也挡子弹，但贴着它开枪时子弹能越过去
@@ -117,12 +117,12 @@
 
 ## 11. 已定（2026-11-05）
 
-- 放在同一个仓库，独立入口 `shooter.html`，代码在 `shooter/`，不影响原来的《逃离萌鸡岛》。
+- 放在同一个仓库，独立入口 `shooter.html`，代码在 `shooter/`，不影响原来的《逃离萌鸡岛》。（2026-11-06 起改为独立仓库 `mengji-shooter`，入口改成 `index.html`。）
 - 子弹是玉米粒。
 - 被打倒只保留金蛋，玉米币和其他物资全部丢失。
 
 ## 12. 怎么运行
 
-- Windows：双击 `start-shooter.bat`，会自动打开 `http://localhost:8767/shooter.html`。
-- 其他系统：在仓库根目录起一个静态服务器（比如 `python3 -m http.server 8767`），然后打开 `http://localhost:8767/shooter.html`。
+- Windows：双击 `start.bat`，会自动打开 `http://localhost:8767/`。
+- 其他系统：在仓库根目录起一个静态服务器（比如 `python3 -m http.server 8767`），然后打开 `http://localhost:8767/`。
 - three.js 从 jsDelivr 加载，第一次打开需要联网。

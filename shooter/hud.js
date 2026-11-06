@@ -32,15 +32,19 @@ export function floatText(wx,wy,wz,text,col='#fff',size=14){const d=document.cre
 export function updateFloats(dt,project){for(let i=floats.length-1;i>=0;i--){const f=floats[i];f.t+=dt;if(f.t>1.1){f.d.remove();floats.splice(i,1);continue;}
  const[x,y]=project(f.wx,f.wy+f.t*1.2,f.wz);f.d.style.left=x+'px';f.d.style.top=y+'px';f.d.style.opacity=f.t<.8?1:1-(f.t-.8)/.3;}}
 export function clearFloats(){for(const f of floats)f.d.remove();floats.length=0;}
+// 帧率显示（F 键开关）：每半秒刷新一次平均帧率、最慢一帧、渲染分辨率和画质
+export function fpsShow(on){const e=$('fps');e.hidden=!on;if(on&&!e.innerHTML)e.innerHTML='<b>…</b> FPS';}
+export function fps(f,worst,w,h,q,scale){const c=f>=55?'ok':f>=40?'mid':'low';
+ $('fps').innerHTML=`<b class="${c}">${f}</b> FPS<span>最慢 ${worst.toFixed(0)} ms</span><span>${w}×${h} · ${q}${scale<1?` · ${Math.round(scale*100)}%`:''}</span>`;}
 export function playing(on){document.body.classList.toggle('playing',on);}
 
 // ---------- 屏幕 ----------
-const KEYS=`<div class="keys"><span><k>W</k><k>A</k><k>S</k><k>D</k></span><span>移动</span><span>鼠标 + 左键</span><span>瞄准、发射玉米粒</span><span><k>空格</k></span><span>翻滚（短暂无敌）</span><span><k>Shift</k></span><span>冲刺</span><span><k>E</k> 按住</span><span>搜索箱子</span><span>打晕黄鼠狼</span><span>掉经验，升级时三选一；每 3 级武器换代</span><span><k>Q</k></span><span>扔臭蛋：熏晕一片黄鼠狼</span><span><k>Esc</k> / <k>M</k></span><span>暂停 / 静音</span></div>`;
+const KEYS=`<div class="keys"><span><k>W</k><k>A</k><k>S</k><k>D</k></span><span>移动</span><span>鼠标 + 左键</span><span>瞄准、发射玉米粒</span><span><k>空格</k></span><span>翻滚（短暂无敌）</span><span><k>Shift</k></span><span>冲刺</span><span><k>E</k> 按住</span><span>搜索箱子</span><span>打晕黄鼠狼</span><span>掉经验，升级时三选一；每 3 级武器换代</span><span><k>Q</k></span><span>扔臭蛋：熏晕一片黄鼠狼</span><span><k>Esc</k> / <k>M</k></span><span>暂停 / 静音</span><span><k>F</k></span><span>显示 / 关闭帧率</span></div>`;
 export function screen(kind,d={},actions={}){const s=$('screen');if(!kind){s.hidden=true;s.innerHTML='';return;}s.hidden=false;let h='';
  if(kind==='title')h=`<div class="card"><div class="lobbyrow"><a class="lobby top" href="https://hitanorain.github.io/">← 返回游戏厅</a></div><h1>萌鸡突围</h1><p>黄鼠狼巡逻队占领了林间营地。<br>带上玉米发射器，依次占领 <b>3 个撤离点</b>，每个都要守住一波围攻，<br>最后坐蛋壳飞艇离开。</p>${KEYS}
   <div class="stats"><div><b>${d.gold}</b>金蛋库存</div><div><b>${d.coin}</b>玉米币</div><div><b>${d.wins}/${d.runs}</b>成功 / 出击</div><div><b>${d.bestLv||1}</b>最高等级</div></div>
   <button class="btn" data-a="start">开始行动</button></div>`;
- else if(kind==='pause')h=`<div class="card"><h2>暂停</h2>${KEYS}<button class="btn" data-a="resume">继续</button><button class="btn ghost" data-a="quit">放弃这局</button><a class="lobby" href="https://hitanorain.github.io/">返回游戏厅</a><p style="font-size:12px;opacity:.6">画质：${d.q} <k>O</k> 切换</p></div>`;
+ else if(kind==='pause')h=`<div class="card"><h2>暂停</h2>${KEYS}<button class="btn" data-a="resume">继续</button><button class="btn ghost" data-a="quit">放弃这局</button><a class="lobby" href="https://hitanorain.github.io/">返回游戏厅</a><p style="font-size:12px;opacity:.6">画质：${d.q} <k>O</k> 切换　帧率 <k>F</k></p></div>`;
  else if(kind==='dead')h=`<div class="card"><h2 style="color:#ff9a8a">被打倒了……</h2><p>巡逻队把你拖回了营地外面。</p>
   <div class="stats"><div><b>${d.points}/3</b>撤离点</div><div><b>${d.kills}</b>打晕黄鼠狼</div><div><b>Lv ${d.lv}</b>${d.weapon}</div><div><b>${d.time}</b>用时</div></div>
   <p><span class="kept">保住了金蛋 ×${d.gold}</span>　<span class="lost">丢失玉米币 ×${d.coin}</span></p><p style="font-size:12.5px;opacity:.7">小技巧：${d.tip}</p>

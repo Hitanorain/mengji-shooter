@@ -1,5 +1,5 @@
 // 萌鸡突围 · 主循环：玩家、黄鼠狼 AI、子弹、成长（经验、三选一、武器换代）、道具、搜箱、臭蛋、油桶、撤离点坚守、增援、头目、结算
-import {THREE,scene,camera,composer,placeSun,adapt,POOL,finalPass,quality,setQuality,clamp,lr,lpick,angLerp} from './engine.js';
+import {THREE,renderer,scene,camera,composer,placeSun,adapt,POOL,finalPass,quality,setQuality,clamp,lr,lpick,angLerp} from './engine.js';
 import * as map from './map.js';
 import {makeChick,makeWeasel,animWalk,flash,makeBullet,makePickup,PICKUPS,makeMark,setMark,makeBar,makeStars,makeAirship} from './models.js';
 import {TIERS,TIER_LV,UPGRADES,REGEN_T,LEECH_N,BULLET_BUFFS,xpNeed,weaponStats,rollChoices} from './upgrades.js';
@@ -17,6 +17,7 @@ const persist=()=>{try{localStorage.setItem(SAVE_KEY,JSON.stringify(save));}catc
 // ---------- 输入 ----------
 const keys={},mouse={x:innerWidth/2,y:innerHeight/2,down:false};
 addEventListener('keydown',e=>{if(e.repeat)return;keys[e.code]=true;audio.init();
+ if(e.code==='KeyF')toggleFps();
  if(state==='pick'){const i=['Digit1','Digit2','Digit3','Numpad1','Numpad2','Numpad3'].indexOf(e.code);if(i>=0)hud.choose(i%3);return;}
  if(e.code==='Escape'||e.code==='KeyP'){if(state==='play')pause();else if(state==='pause')resume();}
  if(e.code==='KeyM')audio.toggleMute();
@@ -407,10 +408,18 @@ function updateVictory(dt){if(winT<0)return;winT+=dt;const E=map.EXITS[map.EXITS
 function tick(dt){stats.time+=dt;updatePlayer(dt);updateExit(dt);updateReinforce(dt);
  for(let i=foes.length-1;i>=0;i--)if(!updateFoe(foes[i],dt))foes.splice(i,1);separate();
  updateBullets(dt);updateThrows(dt);updatePicks(dt);updateSearch(dt);updateVictory(dt);}
+// ---------- 帧率显示：F 键开关，记在本机 ----------
+const FPS_KEY='mengji-shooter-fps';let showFps=false,fN=0,fSum=0,fWorst=0,fT=0;
+try{showFps=localStorage.getItem(FPS_KEY)==='1';}catch(e){}
+function toggleFps(){showFps=!showFps;hud.fpsShow(showFps);fN=fSum=fWorst=0;fT=performance.now();try{localStorage.setItem(FPS_KEY,showFps?'1':'0');}catch(e){}}
+function countFps(ms,now){if(ms>250)return;fN++;fSum+=ms;fWorst=Math.max(fWorst,ms);if(now-fT<500)return;
+ const c=renderer.domElement;hud.fps(Math.round(1000*fN/fSum),fWorst,c.width,c.height,quality.high?'高':'低',quality.scale);fN=fSum=fWorst=0;fT=now;}
+hud.fpsShow(showFps);
 let last=performance.now();
 function frame(now){requestAnimationFrame(frame);const ms=now-last,raw=Math.min(.05,ms/1000);last=now;const dt=state==='play'?raw:0;T+=raw;
  // 按帧率动态调渲染分辨率，太卡时自动关环境光遮蔽
  adapt(ms,now);
+ if(showFps)countFps(ms,now);
  if(state==='play'){updateAim();tick(dt);updateHud(dt);}
  if(state==='pick')hud.updateFloats(0,project);
  if(state==='title'){// 标题界面：镜头在营地上空缓缓移动
